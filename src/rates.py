@@ -79,6 +79,25 @@ class RateCard:
         t_entry = self.model(provider, target)
         return (target, t_entry) if t_entry else None
 
+    def cache_minimum_tokens(self, provider: str, model: str) -> int:
+        """Return the minimum reusable prefix eligible for provider caching.
+
+        Providers set this per model, not once for an entire API.  A global
+        threshold is still supported as a conservative fallback for custom
+        rate cards that do not carry model-level values.
+        """
+        entry = self.model(provider, model) or {}
+        fallback = self.thresholds.get("cache_miss", {}).get("min_prefix_tokens", 1024)
+        return int(entry.get("cache_min_tokens", fallback))
+
+    def pricing_sources(self) -> dict[str, str]:
+        """Provider documentation links supplied by the active rate card."""
+        return {
+            str(provider): str(block["source"])
+            for provider, block in self.raw.get("multipliers", {}).items()
+            if provider != "default" and isinstance(block, dict) and block.get("source")
+        }
+
 
 def load_rate_card(path: str | Path = DEFAULT_RATE_CARD) -> RateCard:
     with open(path) as fh:

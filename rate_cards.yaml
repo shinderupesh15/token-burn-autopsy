@@ -71,18 +71,21 @@ models:
     claude-opus-5:
       input: 5.00
       output: 25.00
+      cache_min_tokens: 512
       tier: frontier
       confidence: documented   # example figures appear in the caching docs
       downgrade_to: claude-sonnet-4-5
     claude-sonnet-4-5:
       input: 3.00
       output: 15.00
+      cache_min_tokens: 1024
       tier: mid
       confidence: default
       downgrade_to: claude-haiku-4-5
     claude-haiku-4-5:
       input: 1.00
       output: 5.00
+      cache_min_tokens: 4096
       tier: budget
       confidence: default
       downgrade_to: null
@@ -91,18 +94,21 @@ models:
     gpt-5:
       input: 1.25
       output: 10.00
+      cache_min_tokens: 1024
       tier: frontier
       confidence: default
       downgrade_to: gpt-5-mini
     gpt-5-mini:
       input: 0.25
       output: 2.00
+      cache_min_tokens: 1024
       tier: mid
       confidence: default
       downgrade_to: gpt-5-nano
     gpt-5-nano:
       input: 0.05
       output: 0.40
+      cache_min_tokens: 1024
       tier: budget
       confidence: default
       downgrade_to: null

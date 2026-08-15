@@ -23,7 +23,7 @@ from engine import run_audit                                    # noqa: E402
 from generate import generate                                   # noqa: E402
 from rates import load_rate_card, price, to_monthly, unpriced_report  # noqa: E402
 from schema import conform                                      # noqa: E402
-from summary import action_list, exec_summary, verdict          # noqa: E402
+from summary import action_list, audit_markdown, exec_summary, verdict  # noqa: E402
 
 
 @pytest.fixture(scope="module")
@@ -59,6 +59,12 @@ def test_provider_cache_discounts_are_not_assumed_equal(rc):
     """OpenAI's cached-input discount is much weaker than Anthropic's.
     Assuming one number across providers would overstate every OpenAI saving."""
     assert rc.multipliers("openai")["cache_read"] != rc.multipliers("anthropic")["cache_read"]
+
+
+def test_cache_minimum_is_model_aware(rc):
+    """A reusable prefix must meet the model's own eligibility minimum."""
+    assert rc.cache_minimum_tokens("anthropic", "claude-opus-5") == 512
+    assert rc.cache_minimum_tokens("anthropic", "claude-haiku-4-5") == 4096
 
 
 def test_unknown_provider_falls_back_conservatively(rc):
@@ -110,6 +116,7 @@ def test_cache_detector_picks_the_cheaper_ttl(audit):
     evaluate the 1-hour TTL too, or it under-reports the biggest finding."""
     f = next(f for f in audit.findings if f.key == "cache_miss")
     assert "best_ttl" in f.evidence.columns
+    assert "min_cache_tokens" in f.evidence.columns
     assert (f.evidence["best_ttl"] == "1h").any()
     # doc_summariser's 7k-token prefix must be found
     assert f.evidence["est_prefix_tokens"].max() > 6_000
@@ -255,6 +262,13 @@ def test_action_list_is_ranked_and_complete(audit):
     assert len(acts) == len(audit.findings)
     assert [a["rank"] for a in acts] == list(range(1, len(acts) + 1))
     assert all(a["action"].endswith(".") for a in acts)
+
+
+def test_markdown_export_includes_confidence_and_provenance(audit, rc):
+    report = audit_markdown(audit, rc.verified_on, rc.pricing_sources())
+    assert "Validate with an eval" in report
+    assert "Provider pricing references" in report
+    assert "Anthropic" in report
 
 
 # --------------------------------------------------------------------------

@@ -149,3 +149,56 @@ def action_list(audit: Audit) -> list[dict]:
         }
         for i, f in enumerate(audit.findings)
     ]
+
+
+def audit_markdown(audit: Audit, verified_on: str, sources: dict[str, str]) -> str:
+    """Create a portable, calculation-backed version of the current audit."""
+    head, qualifier = verdict(audit)
+    lines = [
+        "# Token Burn Autopsy",
+        "",
+        f"## {_money(audit.monthly_recoverable)}/month recoverable",
+        "",
+        f"**{head}.** {audit.recoverable_share:.0%} of an "
+        f"{_money(audit.monthly_spend)}/month bill. {qualifier}",
+        "",
+        "## Recommended actions",
+        "",
+        "| # | Action | Monthly opportunity | Confidence |",
+        "|---:|---|---:|---|",
+    ]
+    for action in action_list(audit):
+        confidence = ("Validate with an eval" if action["confidence"] == "estimated"
+                      else "Provider-documented pricing")
+        lines.append(
+            f"| {action['rank']} | {action['action']} | {_money(action['monthly'])} | "
+            f"{confidence} |"
+        )
+
+    lines.extend(["", "## Findings", ""])
+    for finding in audit.findings:
+        confidence = ("Estimate — validate with an eval before acting"
+                      if finding.confidence == "estimated"
+                      else "Provider-documented pricing")
+        lines.extend([
+            f"### {finding.title} — {_money(finding.monthly)}/month",
+            "",
+            f"- **Confidence:** {confidence}",
+            f"- **Evidence:** {finding.headline}",
+            f"- **Method:** {finding.basis}",
+            f"- **Recommended fix:** {finding.fix}",
+            "",
+        ])
+
+    lines.extend([
+        "## Scope and provenance",
+        "",
+        f"- {audit.priced_calls:,} priced calls across {audit.days:.0f} day(s).",
+        f"- The active rate card is dated **{verified_on}**.",
+        "- Findings can overlap; the headline uses a per-request de-overlapped total.",
+        "",
+        "### Provider pricing references",
+        "",
+    ])
+    lines.extend(f"- [{provider}]({url})" for provider, url in sources.items())
+    return "\n".join(lines)

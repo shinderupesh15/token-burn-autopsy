@@ -77,7 +77,6 @@ def _fmt(x: float) -> str:
 
 def detect_cache_miss(df: pd.DataFrame, rc: RateCard, days: float) -> Optional[Finding]:
     th = rc.thresholds.get("cache_miss", {})
-    min_prefix = int(th.get("min_prefix_tokens", 1024))
     min_repeats = int(th.get("min_repeats", 5))
 
     # Only rows that never touched the cache can be missing cache savings.
@@ -102,6 +101,8 @@ def detect_cache_miss(df: pd.DataFrame, rc: RateCard, days: float) -> Optional[F
         # The 5th percentile is used instead of the true min so one anomalous
         # short call cannot collapse the estimate.
         prefix_tokens = float(np.percentile(g["input_tokens"].astype(float), 5))
+        provider, model = str(keys[1]), str(keys[2])
+        min_prefix = rc.cache_minimum_tokens(provider, model)
         if prefix_tokens < min_prefix:
             continue
 
@@ -132,8 +133,9 @@ def detect_cache_miss(df: pd.DataFrame, rc: RateCard, days: float) -> Optional[F
             continue
 
         rows.append({
-            "agent": keys[0], "model": keys[2] if len(keys) > 2 else keys[-1],
+            "agent": keys[0], "provider": provider, "model": model,
             "calls": n, "est_prefix_tokens": int(prefix_tokens),
+            "min_cache_tokens": min_prefix,
             "best_ttl": ttl_label, "cache_windows": int(windows),
             "paid": current, "if_cached": cached, "recoverable": saving,
         })
@@ -166,7 +168,8 @@ def detect_cache_miss(df: pd.DataFrame, rc: RateCard, days: float) -> Optional[F
         basis=("Prefix size estimated as the 5th percentile of input tokens per "
                "(agent, model, prefix). Re-priced as one cache write per active "
                "TTL window plus remaining calls at the cache-read multiplier; "
-               "5-minute and 1-hour TTLs both evaluated, cheaper reported."),
+               "5-minute and 1-hour TTLs both evaluated, cheaper reported. "
+               "Groups below their model's cacheable-prefix minimum are excluded."),
         confidence="documented",
         evidence=ev,
         detail={"groups": len(ev)},

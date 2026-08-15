@@ -24,7 +24,7 @@ from engine import Audit, run_audit                      # noqa: E402
 from normalize import ADAPTERS, normalize                # noqa: E402
 from rates import DEFAULT_RATE_CARD, load_rate_card_from_yaml, price, unpriced_report  # noqa: E402
 from schema import conform, describe, validate           # noqa: E402
-from summary import action_list, exec_summary, verdict   # noqa: E402
+from summary import action_list, audit_markdown, exec_summary, verdict   # noqa: E402
 
 # --- palette (validated reference instance; light surface) -----------------
 SURFACE = "#fcfcfb"
@@ -53,6 +53,12 @@ st.markdown(f"""
             padding: .85rem 1.1rem; border-radius: 6px; margin: .5rem 0 1rem 0; }}
   .basis {{ font-size: .84rem; color: {INK_2}; border-left: 2px solid {GRID};
             padding-left: .7rem; }}
+  .trust-note {{ border-left: 4px solid {STATUS['warning']}; background: #fff9ec;
+                 padding: .75rem 1rem; border-radius: 6px; margin: .75rem 0; }}
+  [data-testid="stMetricValue"] {{ font-size: clamp(1.65rem, 2.5vw, 2.35rem); white-space: nowrap; }}
+  @media (max-width: 1100px) {{
+    [data-testid="stMetricValue"] {{ font-size: 1.55rem; }}
+  }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -204,6 +210,12 @@ rc_text = rc_upload.getvalue().decode("utf-8") if rc_upload is not None else def
 
 raw_bytes, source_name = None, ""
 if src == "Upload my own":
+    st.sidebar.info(
+        "**Privacy note**\n\n"
+        "This app has no database or external API calls: it analyses the CSV in "
+        "the app session only. Still, this is a third-party hosted app—upload "
+        "only data permitted by your organisation's policy."
+    )
     up = st.sidebar.file_uploader("CSV export", type=["csv"])
     if up is not None:
         raw_bytes, source_name = up.getvalue(), up.name
@@ -255,7 +267,12 @@ except Exception as exc:
         "rate_cards.yaml, or download the template above and fix the file.")
     st.stop()
 st.sidebar.caption(f"Adapter: **{adapter_used}** · {len(df):,} rows")
-st.sidebar.caption(f"Rates verified {rc.verified_on}")
+st.sidebar.caption(f"Active rate card dated {rc.verified_on}")
+sources = rc.pricing_sources()
+if sources:
+    st.sidebar.caption("Provider pricing references")
+    for provider, url in sources.items():
+        st.sidebar.markdown(f"- [{provider.title()} docs]({url})")
 
 head, qualifier = verdict(audit)
 
@@ -277,6 +294,13 @@ with right:
 
 st.markdown("")
 
+if any(f.confidence == "estimated" for f in audit.findings):
+    st.markdown(
+        f'<div class="trust-note"><b>Decision confidence.</b> '
+        'Some opportunities are estimates, not guaranteed savings. Validate model or '
+        'prompt changes against an eval set before production rollout.</div>',
+        unsafe_allow_html=True)
+
 # --- the alarm -------------------------------------------------------------
 loops = next((f for f in audit.findings if f.key == "runaway_loop"), None)
 if loops is not None and not loops.evidence.empty:
@@ -294,6 +318,13 @@ tab_report, tab_findings, tab_quality, tab_schema = st.tabs(
 
 # --- report ----------------------------------------------------------------
 with tab_report:
+    st.download_button(
+        "Download audit as Markdown",
+        data=audit_markdown(audit, rc.verified_on, sources),
+        file_name="token-burn-audit.md",
+        mime="text/markdown",
+        help="A portable report with actions, methods, confidence, and pricing references.",
+    )
     c1, c2 = st.columns([1, 1], gap="large")
     with c1:
         st.markdown("#### Executive summary")
@@ -308,6 +339,9 @@ with tab_report:
     acts = pd.DataFrame(action_list(audit))
     if not acts.empty:
         acts["monthly"] = acts["monthly"].map(money)
+        acts["confidence"] = acts["confidence"].map(
+            {"documented": "Provider-documented", "estimated": "Validate with eval"}
+        )
         st.dataframe(
             acts.rename(columns={
                 "rank": "#", "action": "Action", "finding": "Finding",
@@ -329,7 +363,8 @@ with tab_findings:
         ):
             st.markdown(
                 f'<span class="pill" style="color:{colour};">{f.severity}</span> '
-                f'<span class="pill" style="color:{INK_2};">{f.confidence}</span> '
+                f'<span class="pill" style="color:{INK_2};">'
+                f'{"validate with eval" if f.confidence == "estimated" else "provider-documented"}</span> '
                 f'&nbsp; {f.calls_affected:,} calls affected',
                 unsafe_allow_html=True)
             st.markdown(f"**{f.headline}**")
