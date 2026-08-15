@@ -8,8 +8,6 @@ to do. Every finding is priced against published provider rate cards, so each
 line reads *"you paid 1.0× where 0.1× was available, on N tokens"* — arithmetic
 you can check, not an estimate you have to trust.
 
-Built for Week 1 of **Mastering Agentic AI — The Gen Academy**.
-
 ---
 
 ## The six detectors
