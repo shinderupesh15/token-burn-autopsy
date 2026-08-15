@@ -1,0 +1,141 @@
+# ============================================================================
+# Token Burn Autopsy — rate cards
+# ============================================================================
+# Prices are DATA, not code. Edit this file when a provider changes pricing;
+# no Python needs to be touched. Every dollar figure the app reports traces
+# back to a line in here, so an auditor can check the arithmetic.
+#
+# Two kinds of number live here, and they have very different confidence:
+#
+#   multipliers -> DOCUMENTED by the provider. Stable. Verified against
+#                  official docs (see `source` on each block).
+#   base prices -> change often. Treated as user-editable defaults. Verify
+#                  against the provider's pricing page before quoting a
+#                  number to anyone who will act on it.
+#
+# The app shows a "prices last verified" banner built from `verified_on`.
+# ----------------------------------------------------------------------------
+
+meta:
+  schema_version: "1.0"
+  verified_on: "2026-08-14"
+  currency: USD
+  unit: per_million_tokens
+  note: >
+    Multipliers are provider-documented. Base per-MTok prices are defaults and
+    should be re-checked against the live pricing page before use.
+
+# ----------------------------------------------------------------------------
+# Multipliers — the heart of the savings engine.
+# A finding is only ever "you paid 1.0x where you could have paid 0.1x".
+# ----------------------------------------------------------------------------
+multipliers:
+  anthropic:
+    source: "https://platform.claude.com/docs/en/build-with-claude/prompt-caching"
+    confidence: documented
+    cache_read: 0.1          # cache hits cost 10% of base input
+    cache_write_5m: 1.25     # default TTL write premium
+    cache_write_1h: 2.0      # extended TTL write premium
+    batch: 0.5               # Batch API discount
+
+  openai:
+    source: "https://developers.openai.com/api/docs/guides/batch"
+    confidence: documented
+    cache_read: 0.5          # NOTE: OpenAI's cached-input discount is far less
+                             # aggressive than Anthropic's. Do not assume 0.1
+                             # across providers — this asymmetry is itself a
+                             # finding the app should surface.
+    cache_write_5m: 1.0      # OpenAI does not bill a separate write premium
+    cache_write_1h: 1.0
+    batch: 0.5
+
+  # Fallback for providers without a specific block. Deliberately conservative:
+  # assumes no cache discount, so the app under-claims rather than over-claims.
+  default:
+    source: "conservative fallback"
+    confidence: assumed
+    cache_read: 1.0
+    cache_write_5m: 1.0
+    cache_write_1h: 1.0
+    batch: 1.0
+
+# ----------------------------------------------------------------------------
+# Base prices, USD per million tokens.
+#
+# `tier` drives the model right-sizing detector: a call sitting on a `frontier`
+# model that a `budget` model of the same family could have served is the
+# finding. Tiers are the app's judgement, not the vendor's.
+# ----------------------------------------------------------------------------
+models:
+  anthropic:
+    claude-opus-5:
+      input: 5.00
+      output: 25.00
+      tier: frontier
+      confidence: documented   # example figures appear in the caching docs
+      downgrade_to: claude-sonnet-4-5
+    claude-sonnet-4-5:
+      input: 3.00
+      output: 15.00
+      tier: mid
+      confidence: default
+      downgrade_to: claude-haiku-4-5
+    claude-haiku-4-5:
+      input: 1.00
+      output: 5.00
+      tier: budget
+      confidence: default
+      downgrade_to: null
+
+  openai:
+    gpt-5:
+      input: 1.25
+      output: 10.00
+      tier: frontier
+      confidence: default
+      downgrade_to: gpt-5-mini
+    gpt-5-mini:
+      input: 0.25
+      output: 2.00
+      tier: mid
+      confidence: default
+      downgrade_to: gpt-5-nano
+    gpt-5-nano:
+      input: 0.05
+      output: 0.40
+      tier: budget
+      confidence: default
+      downgrade_to: null
+
+# Applied when a model in the log is not in the table above. The app flags
+# these rows loudly rather than pricing them silently at zero — an unpriced
+# model that quietly contributes $0 is how a cost audit lies to you.
+unknown_model:
+  strategy: flag_and_exclude
+  note: "Unpriced models are excluded from totals and listed in Data Quality."
+
+# ----------------------------------------------------------------------------
+# Detector thresholds. Exposed so a viewer can challenge them in the demo and
+# you can change the number live instead of defending a magic constant.
+# ----------------------------------------------------------------------------
+thresholds:
+  cache_miss:
+    min_prefix_tokens: 1024      # below this, caching is not worth the write premium
+    min_repeats: 5               # a prefix must recur this often to be cacheable
+  right_sizing:
+    max_output_tokens: 200       # short answers suggest an easy task
+    max_input_tokens: 8000       # long context may genuinely need the big model
+    min_calls: 25                # do not recommend a swap off a handful of calls
+  dead_spend:
+    truncation_finish_reason: "length"
+  runaway_loop:
+    min_repeats: 10              # identical prompt_full_hash within one session
+    window_minutes: 30
+  batchable:
+    off_hours_start: 22          # local hour
+    off_hours_end: 6
+    min_calls: 50
+    max_p95_latency_sensitivity_ms: 0   # 0 = treat agent as latency-tolerant
+  prompt_bloat:
+    min_growth_pct: 25           # week-over-week mean input token growth
+    min_weeks: 2
