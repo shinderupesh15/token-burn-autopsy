@@ -181,8 +181,13 @@ def chart_bloat(priced: pd.DataFrame, agents: list[str]) -> go.Figure | None:
 # ---------------------------------------------------------------------------
 
 st.sidebar.markdown("### Usage export")
+SAMPLE_SOURCES = {
+    "Sample data": Path("data/usage_canonical.csv"),
+    "Sample data · Anthropic": Path("data/sample_anthropic.csv"),
+    "Sample data · OpenAI": Path("data/sample_openai.csv"),
+}
 src = st.sidebar.radio(
-    "Source", ["Sample data", "Upload my own"], label_visibility="collapsed")
+    "Source", [*SAMPLE_SOURCES, "Upload my own"], label_visibility="collapsed")
 
 adapter_names = ["auto-detect"] + [a.name for a in ADAPTERS]
 chosen = st.sidebar.selectbox("Format", adapter_names, index=0)
@@ -206,13 +211,17 @@ if src == "Upload my own":
         "Prompt text is never read — only token counts and hashes. "
         "Supported: OpenAI, Anthropic, OpenRouter, Langfuse, or canonical.")
 else:
-    sample = Path("data/usage_canonical.csv")
-    if not sample.exists():
+    sample = SAMPLE_SOURCES[src]
+    if src == "Sample data" and not sample.exists():
         sample = Path("data/sample_usage.csv")
     if sample.exists():
         raw_bytes, source_name = sample.read_bytes(), sample.name
     else:
-        st.sidebar.error("No sample found. Run: python src/generate.py")
+        st.sidebar.error(f"No sample found at {sample}. Run: python src/generate.py")
+    if src != "Sample data":
+        st.sidebar.caption(
+            "A raw export in that provider's own column shape — Format below "
+            "shows auto-detect recognising it, not the app's canonical schema.")
 
 st.sidebar.markdown("---")
 

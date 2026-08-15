@@ -89,6 +89,22 @@ def test_unrecognised_file_raises():
         normalize(pd.DataFrame({"foo": [1], "bar": [2]}))
 
 
+@pytest.mark.parametrize("filename,expected_adapter", [
+    ("sample_anthropic.csv", "anthropic"),
+    ("sample_openai.csv", "openai"),
+])
+def test_shipped_provider_sample_auto_detects(filename, expected_adapter):
+    """The bundled per-provider samples are raw exports in that provider's own
+    column shape, not the canonical schema — auto-detect must recognise them
+    without help, and no row should be lost or mislabelled in the process."""
+    raw = pd.read_csv(ROOT / "data" / filename)
+    got = normalize(raw)
+    assert got.adapter == expected_adapter
+    assert got.dropped_rows == 0
+    assert len(got.df) == len(raw)
+    assert set(got.df["provider"].unique()) == {expected_adapter}
+
+
 # --------------------------------------------------------------------------
 # The six patterns must be present and measurable
 # --------------------------------------------------------------------------
