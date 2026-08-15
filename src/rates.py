@@ -85,6 +85,16 @@ def load_rate_card(path: str | Path = DEFAULT_RATE_CARD) -> RateCard:
         return RateCard(yaml.safe_load(fh))
 
 
+def load_rate_card_from_yaml(text: str) -> RateCard:
+    """Parse a rate card from YAML text (e.g. an uploaded file's contents),
+    rather than a filesystem path. A live deployment has no server filesystem
+    a visitor can point a path at, so this is the loader the UI uses."""
+    raw = yaml.safe_load(text)
+    if not isinstance(raw, dict) or "models" not in raw:
+        raise ValueError("Not a valid rate card: missing top-level 'models' key.")
+    return RateCard(raw)
+
+
 # ---------------------------------------------------------------------------
 # Pricing
 # ---------------------------------------------------------------------------

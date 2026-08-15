@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
 from engine import Audit, run_audit                      # noqa: E402
 from normalize import ADAPTERS, normalize                # noqa: E402
-from rates import load_rate_card, price, unpriced_report # noqa: E402
+from rates import DEFAULT_RATE_CARD, load_rate_card_from_yaml, price, unpriced_report  # noqa: E402
 from schema import conform, describe, validate           # noqa: E402
 from summary import action_list, exec_summary, verdict   # noqa: E402
 
@@ -69,8 +69,8 @@ def _load(raw: bytes, name: str, adapter: str | None):
 
 
 @st.cache_data(show_spinner=False)
-def _audit(df: pd.DataFrame, card_path: str):
-    rc = load_rate_card(card_path)
+def _audit(df: pd.DataFrame, rc_yaml: str):
+    rc = load_rate_card_from_yaml(rc_yaml)
     priced = price(conform(df), rc)
     return priced, run_audit(priced, rc), rc
 
@@ -188,7 +188,14 @@ adapter_names = ["auto-detect"] + [a.name for a in ADAPTERS]
 chosen = st.sidebar.selectbox("Format", adapter_names, index=0)
 adapter_arg = None if chosen == "auto-detect" else chosen
 
-card_path = st.sidebar.text_input("Rate card", "rate_cards.yaml")
+default_rc_text = DEFAULT_RATE_CARD.read_text()
+rc_upload = st.sidebar.file_uploader(
+    "Rate card (YAML)", type=["yaml", "yml"],
+    help="Optional. Leave empty to price against the bundled rate_cards.yaml.")
+st.sidebar.download_button(
+    "Download rate_cards.yaml template", data=default_rc_text,
+    file_name="rate_cards.yaml", mime="application/x-yaml")
+rc_text = rc_upload.getvalue().decode("utf-8") if rc_upload is not None else default_rc_text
 
 raw_bytes, source_name = None, ""
 if src == "Upload my own":
@@ -230,7 +237,14 @@ except Exception as exc:
     st.error(f"Could not read that file.\n\n{exc}")
     st.stop()
 
-priced, audit, rc = _audit(df, card_path)
+try:
+    priced, audit, rc = _audit(df, rc_text)
+except Exception as exc:
+    st.error(
+        f"Could not use that rate card.\n\n{exc}\n\n"
+        "Remove the upload in the sidebar to fall back to the bundled "
+        "rate_cards.yaml, or download the template above and fix the file.")
+    st.stop()
 st.sidebar.caption(f"Adapter: **{adapter_used}** · {len(df):,} rows")
 st.sidebar.caption(f"Rates verified {rc.verified_on}")
 
