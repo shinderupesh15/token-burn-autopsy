@@ -1,5 +1,5 @@
 """
-Day 2 tests: pricing, the six detectors, and the de-overlap arithmetic.
+Engine tests: pricing, the six detectors, and the de-overlap arithmetic.
 
 The tests that matter most are the invariants at the bottom. A cost report is
 only worth anything if it cannot claim more money than exists, and that is a

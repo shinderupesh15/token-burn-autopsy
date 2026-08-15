@@ -28,12 +28,6 @@ challenged and changed live during a demo instead of defended as magic numbers.
 
 ---
 
-## Status
-
-- [x] **Day 1** — canonical schema, four provider adapters, fixture generator
-- [x] **Day 2** — savings engine, de-overlap arithmetic, Streamlit UI, exec summary
-- [ ] **Day 3** — demo recording, submission doc
-
 **48 tests passing.**
 
 ## What it reports

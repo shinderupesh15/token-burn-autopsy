@@ -1,8 +1,8 @@
 """
-Day 1 tests: the generated log must actually contain the six waste patterns,
+Pipeline tests: the generated log must actually contain the six waste patterns,
 and every adapter must round-trip without corrupting token counts.
 
-This suite is the reason the savings engine can be trusted tomorrow. If the
+This suite is the reason the savings engine can be trusted downstream. If the
 fixture does not provably contain a pattern, a detector "finding" it proves
 nothing.
 

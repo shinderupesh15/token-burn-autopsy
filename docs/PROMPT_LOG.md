@@ -1,14 +1,13 @@
 # Vibe-coding log — Token Burn Autopsy
 
-> Deliverable 1 for Week 1 asks for *"prompts you used during vibe coding,
-> iterations you tried, and any learnings or observations."* This file is
-> written **as the build happens**, not reconstructed afterwards. The dead ends
-> are kept in on purpose — a log with no wrong turns in it is a log that was
-> written at the end.
+> A log of the prompts used, the iterations tried, and the learnings along the
+> way. This file is written **as the build happens**, not reconstructed
+> afterwards. The dead ends are kept in on purpose — a log with no wrong turns
+> in it is a log that was written at the end.
 
 ---
 
-## Day 1 — schema, adapters, data generator
+## Part 1 — schema, adapters, data generator
 
 ### Iteration 1 — framing the problem before writing any code
 
@@ -121,8 +120,7 @@ mistakes a team makes in its first quarter.
 
 ### Iteration 6 — two real bugs, caught by probing the output
 
-This is the part worth showing on video, because it is what vibe coding
-actually looks like. The generator ran, produced 149,982 rows, and looked fine.
+This is the part that best shows what vibe coding actually looks like. The generator ran, produced 149,982 rows, and looked fine.
 Probing the output showed it was not.
 
 **Bug 1 — the clean control had a 0% cache hit rate.**
@@ -163,12 +161,12 @@ prefixes are largest. `test_pattern_6_prompt_bloat_drift` asserts both that
 total tokens climb *and* that `input_tokens` stays flat, so the wrong
 implementation cannot pass.
 
-### Iteration 7 — tests as the contract for Day 2
+### Iteration 7 — tests as the contract for Part 2
 
 17 tests, all passing. The suite asserts the fixture provably contains each of
-the six patterns *before* any detector exists. Without that, tomorrow's
-detectors would be graded against data nobody had verified — and a detector
-that "finds" a pattern in unverified data proves nothing.
+the six patterns *before* any detector exists. Without that, the detectors
+built next would be validated against data nobody had verified — and a
+detector that "finds" a pattern in unverified data proves nothing.
 
 ```
 $ python -m pytest tests/ -q
@@ -196,7 +194,7 @@ came from verification, and those are separate activities.
 
 ---
 
-## Day 2 — savings engine + Streamlit UI
+## Part 2 — savings engine + Streamlit UI
 
 ### Iteration 8 — pricing, and one rule that shaped `rates.py`
 
@@ -224,7 +222,7 @@ batchable      nightly_enrichment   off-hours 100%       paid $136.90  recoverab
 **$145.55** of savings on it. Over 100%.
 
 **Findings are not disjoint.** One nightly job is simultaneously over-provisioned
-*and* batchable. Adding the two claims money that does not exist, and any judge
+*and* batchable. Adding the two claims money that does not exist, and anyone
 who divides one column by another finds it in about fifteen seconds.
 
 The fix was a real refactor, not a patch. Every detector now returns
@@ -286,7 +284,7 @@ the most help.
 Deliberate, for three reasons:
 
 1. A cost auditor that spends tokens to tell you about your token spend is a
-   joke the judge will make before you do.
+   bad joke waiting to happen.
 2. Every sentence is generated from a computed number. A model would
    *paraphrase* those numbers, and paraphrasing is where a hallucinated figure
    enters a financial report.
@@ -322,9 +320,9 @@ bar — the visual proof that the tool is not just indicting everything it sees.
 
 ---
 
-## Observations after Day 2
+## Observations after Part 2
 
-Three bugs across two days. Not one of them crashed. Every one produced
+Three bugs across the build. Not one of them crashed. Every one produced
 plausible output that a reasonable person would have shipped:
 
 | Bug | What it looked like | What it was |

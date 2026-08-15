@@ -4,7 +4,7 @@ Template-based executive summary.
 Deliberately not an LLM call. Three reasons that survived the decision:
 
   1. A cost auditor that spends tokens to tell you about your token spend is a
-     bad joke a judge will make before you do.
+     bad joke waiting to happen.
   2. Every sentence here is generated from a computed number. A model would
      paraphrase those numbers, and paraphrasing is exactly where a hallucinated
      figure enters a financial report.
