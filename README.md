@@ -33,14 +33,14 @@ challenged and changed live during a demo instead of defended as magic numbers.
 On the bundled fixture (150k calls, 6 weeks, an early-stage team):
 
 ```
-$324 / month recoverable   —  54% of a $604/month bill
+$318 / month recoverable   —  53% of a $601/month bill
 
-CRITICAL  Uncached prompt prefixes                 $150/mo   documented
+CRITICAL  Uncached prompt prefixes                 $146/mo   documented
 CRITICAL  Frontier models doing budget-model work  $136/mo   estimated
-MEDIUM    Latency-tolerant work on sync endpoint   $48.9/mo  documented
-MEDIUM    Spend on calls that produced nothing     $28.5/mo  documented
-MEDIUM    System prompts growing week over week    $18.6/mo  estimated
-CRITICAL  Runaway agent loops                      $14.3/mo  documented
+MEDIUM    Latency-tolerant work on sync endpoint   $49.5/mo  documented
+MEDIUM    Spend on calls that produced nothing     $29.0/mo  documented
+MEDIUM    System prompts growing week over week    $19.3/mo  estimated
+CRITICAL  Runaway agent loops                      $10.3/mo  documented
 ```
 
 Findings carry a **confidence**: `documented` means the discount is published by
@@ -56,7 +56,7 @@ checks it.
 ```bash
 pip install -r requirements.txt
 
-# generate a 6-week synthetic log (149,982 rows)
+# generate a 6-week synthetic log (~150k rows)
 python src/generate.py --weeks 6 --seed 7 -o data/usage_canonical.csv
 
 # or emit a provider-native shape to exercise the adapters

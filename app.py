@@ -292,7 +292,7 @@ with tab_report:
     with c2:
         st.markdown("#### Cost criminals")
         st.caption("Recoverable waste per agent, against that agent's total spend.")
-        st.plotly_chart(chart_criminals(audit, priced), use_container_width=True,
+        st.plotly_chart(chart_criminals(audit, priced), width="stretch",
                         config={"displayModeBar": False})
 
     st.markdown("#### Do this first")
@@ -304,7 +304,7 @@ with tab_report:
                 "rank": "#", "action": "Action", "finding": "Finding",
                 "monthly": "Per month", "confidence": "Confidence",
                 "agents": "Agents"}),
-            hide_index=True, use_container_width=True)
+            hide_index=True, width="stretch")
 
 # --- findings --------------------------------------------------------------
 with tab_findings:
@@ -334,11 +334,11 @@ with tab_findings:
                             "recoverable", "burned", "cost"):
                     if col in ev.columns:
                         ev[col] = ev[col].map(money)
-                st.dataframe(ev, hide_index=True, use_container_width=True)
+                st.dataframe(ev, hide_index=True, width="stretch")
             if f.key == "prompt_bloat":
                 fig = chart_bloat(priced, f.agents)
                 if fig is not None:
-                    st.plotly_chart(fig, use_container_width=True,
+                    st.plotly_chart(fig, width="stretch",
                                     config={"displayModeBar": False})
 
 # --- data quality ----------------------------------------------------------
@@ -362,7 +362,7 @@ with tab_quality:
     if not up.empty:
         st.markdown("**Models missing from the rate card** — excluded from all "
                     "totals rather than silently priced at zero.")
-        st.dataframe(up, hide_index=True, use_container_width=True)
+        st.dataframe(up, hide_index=True, width="stretch")
 
     warns = validate(conform(df))
     if warns:
@@ -382,4 +382,4 @@ with tab_schema:
         "Every provider export normalises onto this table. It stores "
         "observations only — there is no `is_wasteful` column, because a schema "
         "that hands the detector its answer makes the audit circular.")
-    st.dataframe(describe(), hide_index=True, use_container_width=True)
+    st.dataframe(describe(), hide_index=True, width="stretch")
