@@ -159,7 +159,7 @@ def audit_markdown(audit: Audit, verified_on: str, sources: dict[str, str]) -> s
         "",
         f"## {_money(audit.monthly_recoverable)}/month recoverable",
         "",
-        f"**{head}.** {audit.recoverable_share:.0%} of an "
+        f"**{head}.** {audit.recoverable_share:.0%} of a "
         f"{_money(audit.monthly_spend)}/month bill. {qualifier}",
         "",
         "## Recommended actions",
@@ -200,5 +200,5 @@ def audit_markdown(audit: Audit, verified_on: str, sources: dict[str, str]) -> s
         "### Provider pricing references",
         "",
     ])
-    lines.extend(f"- [{provider}]({url})" for provider, url in sources.items())
+    lines.extend(f"- [{provider.title()}]({url})" for provider, url in sources.items())
     return "\n".join(lines)

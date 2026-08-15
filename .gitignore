@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 data/*.csv
+data/demo_upload.csv
 !data/sample_*.csv
 !data/usage_canonical.csv
 .venv/

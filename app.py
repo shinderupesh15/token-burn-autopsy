@@ -55,6 +55,14 @@ st.markdown(f"""
             padding-left: .7rem; }}
   .trust-note {{ border-left: 4px solid {STATUS['warning']}; background: #fff9ec;
                  padding: .75rem 1rem; border-radius: 6px; margin: .75rem 0; }}
+  header[data-testid="stHeader"] {{ background: {SURFACE}; border-bottom: 1px solid {GRID}; }}
+  [data-testid="stAppViewContainer"] .main .block-container {{
+    padding-top: 1.6rem; padding-bottom: 3rem;
+  }}
+  .section-kicker {{ font-size: .75rem; font-weight: 700; letter-spacing: .07em;
+                     text-transform: uppercase; color: {MUTED}; margin-bottom: .2rem; }}
+  .finding-copy ul {{ margin-top: .2rem; padding-left: 1.15rem; }}
+  .finding-copy li {{ margin-bottom: .45rem; }}
   [data-testid="stMetricValue"] {{ font-size: clamp(1.65rem, 2.5vw, 2.35rem); white-space: nowrap; }}
   @media (max-width: 1100px) {{
     [data-testid="stMetricValue"] {{ font-size: 1.55rem; }}
@@ -318,6 +326,8 @@ tab_report, tab_findings, tab_quality, tab_schema = st.tabs(
 
 # --- report ----------------------------------------------------------------
 with tab_report:
+    st.markdown('<div class="section-kicker">Decision brief</div>', unsafe_allow_html=True)
+    st.caption("Start with the headline and recommended actions. Open Findings & evidence when you need the calculation behind a number.")
     st.download_button(
         "Download audit as Markdown",
         data=audit_markdown(audit, rc.verified_on, sources),
@@ -327,15 +337,16 @@ with tab_report:
     )
     c1, c2 = st.columns([1, 1], gap="large")
     with c1:
-        st.markdown("#### Executive summary")
+        st.markdown("#### What this means")
         st.markdown(exec_summary(audit))
     with c2:
-        st.markdown("#### Cost criminals")
+        st.markdown("#### Where savings are concentrated")
         st.caption("Recoverable waste per agent, against that agent's total spend.")
         st.plotly_chart(chart_criminals(audit, priced), width="stretch",
                         config={"displayModeBar": False})
 
-    st.markdown("#### Do this first")
+    st.markdown("#### Recommended actions")
+    st.caption("Work top to bottom. ‘Validate with eval’ means the saving depends on quality holding after the change.")
     acts = pd.DataFrame(action_list(audit))
     if not acts.empty:
         acts["monthly"] = acts["monthly"].map(money)
@@ -351,6 +362,8 @@ with tab_report:
 
 # --- findings --------------------------------------------------------------
 with tab_findings:
+    st.markdown('<div class="section-kicker">Evidence behind the decision</div>', unsafe_allow_html=True)
+    st.caption("Each finding separates the observed signal from the recommended action and the calculation used to price it.")
     if not audit.findings:
         st.success("No recoverable waste found by any of the six checks.")
     for f in audit.findings:
@@ -367,12 +380,22 @@ with tab_findings:
                 f'{"validate with eval" if f.confidence == "estimated" else "provider-documented"}</span> '
                 f'&nbsp; {f.calls_affected:,} calls affected',
                 unsafe_allow_html=True)
-            st.markdown(f"**{f.headline}**")
-            st.markdown(f"**Fix.** {f.fix}")
+            confidence_copy = ("This is a projection; run an eval before changing production behaviour."
+                               if f.confidence == "estimated"
+                               else "The pricing lever is published by the provider; qualifying usage is measured from this export.")
+            st.markdown(
+                '<div class="finding-copy"><ul>'
+                f'<li><b>What we found:</b> {f.headline}</li>'
+                f'<li><b>Recommended action:</b> {f.fix}</li>'
+                f'<li><b>Confidence:</b> {confidence_copy}</li>'
+                '</ul></div>',
+                unsafe_allow_html=True)
             st.markdown(f'<div class="basis"><b>How this was calculated.</b> '
                         f'{f.basis}</div>', unsafe_allow_html=True)
             st.markdown("")
             if not f.evidence.empty:
+                st.markdown("**Evidence rows**")
+                st.caption("These grouped records contribute to this finding; money columns use the active rate card.")
                 ev = f.evidence.copy()
                 for col in ("paid", "if_cached", "if_downgraded", "if_batched",
                             "recoverable", "burned", "cost"):
@@ -387,7 +410,9 @@ with tab_findings:
 
 # --- data quality ----------------------------------------------------------
 with tab_quality:
-    st.markdown("#### How much of this file could be priced")
+    st.markdown('<div class="section-kicker">Coverage and caveats</div>', unsafe_allow_html=True)
+    st.markdown("#### Can this file support a reliable decision?")
+    st.caption("Check this tab before treating the headline as a complete picture of your bill.")
     q1, q2, q3 = st.columns(3)
     q1.metric("Priced calls", f"{audit.priced_calls:,}")
     q2.metric("Unpriced calls", f"{audit.unpriced_calls:,}")
@@ -402,6 +427,13 @@ with tab_quality:
         "combined multiplicatively per request. The headline is the "
         "de-overlapped figure — the sum of the findings below it is not.")
 
+    st.markdown(
+        "**How to read these numbers**\n\n"
+        "- **Priced calls** contribute to the bill and savings calculations.\n"
+        "- **Unpriced calls** are excluded rather than treated as $0; add their model to the rate card for complete coverage.\n"
+        "- **Naive vs de-overlapped** prevents a single request counted by several findings from being claimed as savings more than once."
+    )
+
     up = unpriced_report(priced)
     if not up.empty:
         st.markdown("**Models missing from the rate card** — excluded from all "
@@ -410,7 +442,7 @@ with tab_quality:
 
     warns = validate(conform(df))
     if warns:
-        st.markdown("**Warnings**")
+        st.markdown("**Things to check before acting**")
         for w in warns:
             st.markdown(f"- {w}")
     if msgs:
@@ -421,9 +453,15 @@ with tab_quality:
 
 # --- schema ----------------------------------------------------------------
 with tab_schema:
+    st.markdown('<div class="section-kicker">Input reference</div>', unsafe_allow_html=True)
     st.markdown("#### Canonical schema")
     st.caption(
         "Every provider export normalises onto this table. It stores "
         "observations only — there is no `is_wasteful` column, because a schema "
         "that hands the detector its answer makes the audit circular.")
+    st.markdown(
+        "- **Required columns** are needed to price usage correctly.\n"
+        "- **Optional columns** unlock stronger checks, including cache misses and runaway loops.\n"
+        "- Prompt text is not required; token counts and hashes are sufficient."
+    )
     st.dataframe(describe(), hide_index=True, width="stretch")
