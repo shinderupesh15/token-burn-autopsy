@@ -56,6 +56,20 @@ st.markdown(f"""
   .trust-note {{ border-left: 4px solid {STATUS['warning']}; background: #fff9ec;
                  padding: .75rem 1rem; border-radius: 6px; margin: .75rem 0; }}
   header[data-testid="stHeader"] {{ background: {SURFACE}; border-bottom: 1px solid {GRID}; }}
+  .header-brand {{ position: fixed; top: 0; left: 5rem;
+                    height: 3.4rem; display: flex; align-items: center; gap: .5rem;
+                    font-size: 1.15rem; font-weight: 700; letter-spacing: .05em;
+                    text-transform: uppercase; color: {INK}; z-index: 999999;
+                    pointer-events: none; white-space: nowrap; }}
+  /* When the sidebar is expanded its collapse arrow sits ~2.5rem-5rem in from
+     its own right edge, which overlaps the brand at the default left offset.
+     Shift clear of the sidebar's default width (300px) plus a margin. */
+  body:has([data-testid="stSidebar"][aria-expanded="true"]) .header-brand {{
+    left: 20rem;
+  }}
+  @media (max-width: 640px) {{
+    .header-brand {{ display: none; }}
+  }}
   [data-testid="stAppViewContainer"] .main .block-container {{
     padding-top: 1.6rem; padding-bottom: 3rem;
   }}
@@ -68,6 +82,7 @@ st.markdown(f"""
     [data-testid="stMetricValue"] {{ font-size: 1.55rem; }}
   }}
 </style>
+<div class="header-brand">🔥 Token Burn Autopsy</div>
 """, unsafe_allow_html=True)
 
 
