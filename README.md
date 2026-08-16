@@ -26,7 +26,7 @@ challenged and changed live during a demo instead of defended as magic numbers.
 
 ---
 
-**48 tests passing.**
+**52 tests passing.**
 
 ## What it reports
 
